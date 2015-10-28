@@ -86,6 +86,8 @@ def printInfo(email, CONN_STRING, source, dest, dep_date, sortBy="1"):
               lower(a2.name) like '%{1}%')
         order by price asc        
         """.format(source.lower(), dest.lower(), dep_date)
+        # query that selects suitable flights sorted by stops then price and 
+        # similar aiport name or city name 
         sortByStops = """
         select x.flightno1, x.flightno2, x.src, x.dst, to_char(x.dep_date)
                as dep_date,
@@ -148,8 +150,23 @@ def printInfo(email, CONN_STRING, source, dest, dep_date, sortBy="1"):
             if sortBy == "1":
                 rs = main.sqlWithReturn(sortByPrice, CONN_STRING)
             else:
-                rs = main.sqlWithReturn(sortByStops, CONN_STRING)
-            booking(email, CONN_STRING, flightno, rs, dep_date, source, dest)
+                newRs = main.sqlWithReturn(sortByStops, CONN_STRING)
+
+            # compare each row in new result set with user selected row and
+            # record the index
+            selected = rs[flightno-1]
+            i = 0
+            for row in newRs:
+                if row[0] == selected[0] and row[1] == selected[1] and row[-3] == selected[-3] and row[-2] == selected[-2]:
+                    break
+                else:
+                    i += 1
+            # if not found, print error message and go back
+            if i == len(newRs):
+                print("tickets for your selected flight has run out")
+                return printInfo(email, CONN_STRING, source, dest, dep_date, sortBy)
+            # call booking function
+            return booking(email, CONN_STRING, i+1, newRs, dep_date, source, dest)
         elif optNum == len(rs)+3:
             main.menu(email, CONN_STRING)
         else:

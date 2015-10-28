@@ -272,8 +272,23 @@ def printRoundInfo(email, CONN_STRING, source, dest, dep_date, ret_date, sortBy=
             if sortBy == "1":
                 rs = main.sqlWithReturn(sortByPrice, CONN_STRING)
             else:
-                rs = main.sqlWithReturn(sortByStops, CONN_STRING)
-            roundBooking(email, CONN_STRING, flightno, rs, dep_date, ret_date, source, dest)
+                newRs = main.sqlWithReturn(sortByStops, CONN_STRING)
+
+            # compare each row in new result set with user selected row and
+            # record the index
+            selected = rs[flightno-1]
+            i = 0
+            for row in newRs:
+                if row[0] == selected[0] and row[1] == selected[1] and row[8] == selected[8] and row[9] == selected[9] and row[10] == selected[10] and row[11] == selected[11] and row[-5] == selected[-5] and row[-4] == selected[-4]:
+                    break
+                else:
+                    i += 1
+            # if not found, print error message and go back
+            if i == len(newRs):
+                print("tickets for your selected flight has run out")
+                return printRoundInfo(email, CONN_STRING, source, dest, dep_date, ret_date, sortBy)
+            # call booking function
+            return roundBooking(email, CONN_STRING, i+1, newRs, dep_date, ret_date, source, dest)
         elif optNum == len(rs)+3:
             main.menu(email, CONN_STRING)
         else:
